@@ -19,9 +19,16 @@
         </div>
     @endif
 
+    @if ($message = Session::get('error'))
+        <div class="alert alert-danger">
+            <p>{{message}}</p>
+        </div>
+    @endif
+
     <table class="table table-bordered table-responsive-lg">
         <tr>
             <th>No</th>
+            <th>Thumbnail</th>
             <th>Country</th>
             <th>description</th>
             <th>Price</th>
@@ -32,6 +39,7 @@
         @foreach ($properties as $property)
             <tr>
                 <td>{{$property->id}}</td>
+                <td><img src="{{$property->thumbnail}}"/></td>
                  <td>{{$property->country}}</td>
                  <td>{{$property->description}}</td>
                  <td>{{$property->price}}</td>
@@ -46,9 +54,9 @@
                         </a>
                     <form action="/delete/{{$property->id}}" method="post">
                     @csrf
-                    
+
                     <button type="submit"><i  class="fas fa-trash fa-lg text-danger"></i></button>
-                    
+
                     </form>
                 </td>
             </tr>

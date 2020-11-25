@@ -27,6 +27,11 @@
          <div class="row">
             <div class="col-xs-12 col-sm-12 col-md-12">
                 <div class="form-group">
+                    <strong>County:</strong>
+                    <input type="text" name="county" class="form-control" placeholder="Country"
+                           value="{{$property->county}}">
+                </div>
+                <div class="form-group">
                     <strong>Country:</strong>
                     <input type="text" name="country" class="form-control" placeholder="Country"
                      value="{{$property->country}}">
@@ -77,10 +82,22 @@
             </div>
             <div class="col-xs-12 col-sm-12 col-md-12">
                 <div class="form-group">
-                    <strong>Rent/Sale:</strong>
+                    <strong>Type:</strong>
                     <input type="text" name="type" class="form-control" placeholder="Select type" value="{{$property->sale_rent}}">
                 </div>
             </div>
+             <div class="col-xs-12 col-sm-12 col-md-12">
+                 <div class="form-group">
+                     <strong>Thumbnail:</strong>
+                     <input type="text" name="image_thumbnail" class="form-control" placeholder="Select type" value="{{$property->thumbnail}}">
+                 </div>
+             </div>
+             <div class="col-xs-12 col-sm-12 col-md-12">
+                 <div class="form-group">
+                     <strong>Full Image:</strong>
+                     <input type="text" name="full_image" class="form-control" placeholder="Select type" value="{{$property->image}}">
+                 </div>
+             </div>
             <div class="col-xs-12 col-sm-12 col-md-12 text-center">
                 <button type="submit" class="btn btn-primary">Submit</button>
             </div>

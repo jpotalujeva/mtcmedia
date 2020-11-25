@@ -10,11 +10,21 @@ class PropertyController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @param int $page optional
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @throws \Exception
      */
-    public function index()
+    public function index(int $page = 1)
     {
-        $properties = Property::latest()->paginate(5);
+        $client = new \GuzzleHttp\Client();
+        $client->setDefaultOption('verify', false);
+        $response = $client->get(env('MTC_API_URL') . "properties?api_key=" . env('MTC_API_KEY'));
+
+        if($response->getStatusCode() !== 200){
+            throw new \Exception('Api request error');
+        }
+
+        $properties = $response->getBody();
 
         return view('properties.index', compact('properties'))
             ->with('i', (request()->input('page', 1) - 1) * 5);
@@ -23,7 +33,7 @@ class PropertyController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
     public function create()
     {
@@ -34,35 +44,29 @@ class PropertyController extends Controller
      * Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
-        
         $data = $request->post();
+        $client = new \GuzzleHttp\Client();
 
         $formattedAddr = str_replace(' ','+', $data['country'] . $data['town'] . $data['address'] );
         $geocodeFromAddr = file_get_contents
-        ('http://maps.googleapis.com/maps/api/geocode/json?address='.$formattedAddr.'&sensor=false');
+        ('http://maps.googleapis.com/maps/api/geocode/json?address='.$formattedAddr.'&sensor=false&key='.env('GOOGLE_API_KEY'));
         $output = json_decode($geocodeFromAddr);
-        
+
         //Get latitude and longitute from json data
         $data['latitude'] = $output->results[0]->geometry->location->lat;
         $data['longitude'] = $output->results[0]->geometry->location->lng;
-        $property = new Property;
-        $property->country = $data['country'];
-        $property->town = $data['town'];
-        $property->price = $data['price'];
-        $property->description = $data['description'];
-        $property->sale_rent = $data['type'];
-        $property->property_type = $data['property_type'];
-        $property->address = $data['address'];
-        $property->latitude = $data['latitude'];
-        $property->longtitude = $data['longitude'];
-        $property->number_of_bedrooms = $data['number_of_bedrooms'];
-        $property->number_of_bathrooms = $data['number_of_bathrooms'];
-        $property->save();
-        // Property::create($request->post());
+
+        $client->setDefaultOption('verify', false);
+        $options['body'] = [json_encode($data)];
+        $response = $client->post(env('MTC_API_URL') . "property?api_key=" . env('MTC_API_KEY'), $options);
+        if ($response->getStatusCode() !== 201) {
+            return redirect()->route('properties.index')
+                ->with('error', 'Property creation error.');
+        }
 
         return redirect()->route('properties.index')
             ->with('success', 'Property created successfully.');
@@ -71,38 +75,60 @@ class PropertyController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\Property  $property
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @throws \Exception
      */
-    public function show($id)
+    public function show($uuid)
     {
-         $property = Property::find($id);
+        $client = new \GuzzleHttp\Client();
+        $client->setDefaultOption('verify', false);
+        $response = $client->get(env('MTC_API_URL') . "property/". $uuid ."?api_key=" . env('MTC_API_KEY'));
+
+        if($response->getStatusCode() !== 200){
+            throw new \Exception('Api request error');
+        }
+
+        $property = $response->getBody();
          return view('properties.show', compact('property'));
     }
 
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Property  $property
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @throws \Exception
      */
-    public function edit($id)
+    public function edit($uuid)
     {
-        $property = Property::find($id);
+        $client = new \GuzzleHttp\Client();
+        $client->setDefaultOption('verify', false);
+        $response = $client->get(env('MTC_API_URL') . "property/". $uuid ."?api_key=" . env('MTC_API_KEY'));
+
+        if($response->getStatusCode() !== 200){
+            throw new \Exception('Api request error');
+        }
+
+        $property = $response->getBody();
          return view('properties.edit', compact('property'));
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Property  $property
-     * @return \Illuminate\Http\Response
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @throws \Exception
      */
-    public function update($id)
+    public function update($uuid, $request)
     {
-        $property = Property::find($id);
-        $property->update($request->all());
+        $client = new \GuzzleHttp\Client();
+        $client->setDefaultOption('verify', false);
+        $options['body'] = [json_encode($request->post())];
+        $response = $client->put(env('MTC_API_URL') . "property/". $uuid ."?api_key=" . env('MTC_API_KEY'), $options);
+
+        if($response->getStatusCode() !== 200){
+            throw new \Exception('Api request error');
+        }
 
         return redirect()->route('properties.index')
             ->with('success', 'Property updated successfully');
@@ -111,13 +137,18 @@ class PropertyController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Property  $property
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\RedirectResponse
+     * @throws \Exception
      */
-    public function destroy( $id)
+    public function destroy($uuid)
     {
-        $property = Property::find($id);
-        $property->delete();
+        $client = new \GuzzleHttp\Client();
+        $client->setDefaultOption('verify', false);
+        $response = $client->delete(env('MTC_API_URL') . "property/". $uuid ."?api_key=" . env('MTC_API_KEY'));
+
+        if($response->getStatusCode() !== 200){
+            throw new \Exception('Api request error');
+        }
 
         return redirect()->route('properties.index')
             ->with('success', 'Property deleted successfully');
